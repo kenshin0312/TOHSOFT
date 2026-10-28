@@ -1,0 +1,620 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta charset="utf-8">
+<title>QR Code Ads Kill-switch Test</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: một cột tài liệu tester, mục lục dính trên cùng, bảng/JSON cuộn ngang trong khung riêng */
+:root{
+  --bg:#f6f7f5; --panel:#ffffff; --panel2:#eef1ed; --fg:#1b2420; --muted:#5b6a63;
+  --line:#d8dfda; --accent:#0d7a5f; --accent-soft:#dcefe8;
+  --ok:#1f7a3d; --warn:#9a6a00; --bad:#b4372f; --code-bg:#f0f3f1;
+  --f-body:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111614; --panel:#18201d; --panel2:#1f2925; --fg:#e4ebe7; --muted:#9aaba3;
+  --line:#2c3833; --accent:#4fd1a8; --accent-soft:#183a30;
+  --ok:#7ddc9a; --warn:#f0c463; --bad:#f2938a; --code-bg:#0d1210; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111614; --panel:#18201d; --panel2:#1f2925; --fg:#e4ebe7; --muted:#9aaba3;
+  --line:#2c3833; --accent:#4fd1a8; --accent-soft:#183a30;
+  --ok:#7ddc9a; --warn:#f0c463; --bad:#f2938a; --code-bg:#0d1210; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:960px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-size:1.9rem;line-height:1.2;margin:0 0 6px;text-wrap:balance;font-weight:700}
+h2{font-size:1.3rem;margin:40px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line);text-wrap:balance;scroll-margin-top:64px}
+h3{font-size:1.02rem;margin:22px 0 6px}
+p{margin:6px 0 12px;max-width:70ch}
+ul,ol{margin:6px 0 12px;padding-left:22px}
+li{margin:4px 0}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sub{color:var(--muted);margin:0 0 14px}
+.eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin:18px 0 0;padding:10px 0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.88rem}
+nav.toc a{text-decoration:none;color:var(--muted)}
+nav.toc a:hover{color:var(--accent)}
+.note{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;padding:12px 16px;margin:14px 0}
+.note.warn{border-left-color:var(--warn)}
+.note p:last-child,.note ul:last-child{margin-bottom:0}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:14px 0}
+.fact{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.fact b{display:block;font-size:1.35rem;font-variant-numeric:tabular-nums}
+.fact span{color:var(--muted);font-size:.86rem}
+.prio{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0}
+.prio span{font-family:var(--f-mono);font-size:.8rem;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+.prio i{color:var(--muted);font-style:normal}
+.tbl{overflow-x:auto;margin:12px 0 18px;border:1px solid var(--line);border-radius:6px}
+table{width:100%;border-collapse:collapse;background:var(--panel);font-size:.9rem;min-width:640px}
+th,td{border-bottom:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{background:var(--panel2);font-weight:600;font-size:.82rem;letter-spacing:.02em}
+td.id{font-family:var(--f-mono);color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:.74rem;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.pill.on{color:var(--ok)} .pill.off{color:var(--bad)} .pill.keep{color:var(--warn)} .pill.dead{color:var(--muted)}
+.samples{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.sample{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.sample header{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sample h3{margin:0;font-size:.95rem}
+.sample p{margin:0;color:var(--muted);font-size:.86rem}
+pre{margin:0;background:var(--code-bg);border:1px solid var(--line);border-radius:5px;padding:10px 12px;overflow-x:auto;font-family:var(--f-mono);font-size:.8rem;line-height:1.5}
+button.copy{font:600 .78rem var(--f-body);color:var(--accent);background:transparent;border:1px solid var(--accent);border-radius:5px;padding:3px 10px;cursor:pointer;flex-shrink:0}
+button.copy:hover{background:var(--accent-soft)}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding-left:32px;margin:8px 0}
+.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:.78rem;font-weight:700;display:grid;place-items:center}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.keys-tools{display:flex;flex-direction:column;gap:10px;margin:12px 0 4px}
+.search input{width:100%;font:inherit;font-size:.92rem;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 12px}
+.search input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:500 .8rem var(--f-body);color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.group-h{display:flex;align-items:baseline;gap:8px;margin:22px 0 4px}
+.group-h h3{margin:0}
+.group-h p{margin:0;color:var(--muted);font-size:.86rem}
+.count{font:600 .74rem var(--f-mono);color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 8px;font-variant-numeric:tabular-nums}
+table.keys td:first-child,table.keys th:first-child{width:36px;text-align:center}
+table.keys input[type=checkbox]{width:16px;height:16px;accent-color:var(--bad);cursor:pointer}
+table.keys tr.ticked td{background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.keycell{display:flex;align-items:center;gap:6px}
+.keycell code{white-space:nowrap}
+button.ico{font:inherit;font-size:.9rem;line-height:1;color:var(--muted);background:transparent;border:0;padding:2px 4px;border-radius:4px;cursor:pointer}
+button.ico:hover{color:var(--accent);background:var(--accent-soft)}
+.unit{font-family:var(--f-mono);font-size:.74rem;color:var(--muted);white-space:nowrap}
+.keys-json{margin-top:24px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.keys-json-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.keys-json-head h3{margin:0;font-size:.95rem;display:flex;align-items:center;gap:8px}
+.keys-actions{display:flex;flex-wrap:wrap;gap:6px}
+button.ghost{font:600 .78rem var(--f-body);color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:5px;padding:3px 10px;cursor:pointer}
+button.ghost:hover{color:var(--fg);border-color:var(--muted)}
+.small{font-size:.84rem;color:var(--muted);margin:0}
+footer{margin-top:48px;color:var(--muted);font-size:.84rem}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">QR Code · Tester · Remote Config <code>ads_disable_rules_v1</code></div>
+  <h1>Test bật / tắt quảng cáo từ xa</h1>
+  <p class="sub">Hướng dẫn cho QA kiểm tra tính năng Ads Disable Rules trên bản Tester. Tài liệu kỹ thuật: <a href="admob_remote_ad_control.html">admob_remote_ad_control.html</a>.</p>
+
+  <nav class="toc" aria-label="Mục lục">
+    <a href="#hieu-nhanh">Hiểu nhanh</a>
+    <a href="#cach-doi">Cách đổi cấu hình</a>
+    <a href="#kich-ban">Kịch bản test</a>
+    <a href="#mau">JSON mẫu</a>
+    <a href="#keys">Danh sách vị trí</a>
+    <a href="#bao-loi">Báo lỗi</a>
+  </nav>
+
+  <!-- ============ 1 ============ -->
+  <h2 id="hieu-nhanh">Hiểu nhanh</h2>
+  <div class="facts">
+    <div class="fact"><b>10</b><span>vị trí quảng cáo đang chạy (+2 khai báo nhưng chưa gắn vào màn nào)</span></div>
+    <div class="fact"><b>105</b><span>mã màn hình con để tắt riêng từng màn (72 banner bottom, 23 native tạo QR, 8 native empty, 2 inter scan result)</span></div>
+    <div class="fact"><b>0 lần</b><span>khởi động lại app. Rule áp dụng ngay khi đổi</span></div>
+  </div>
+  <ul>
+    <li>Mỗi vị trí có một <b>mã</b> dạng <code>&lt;loại&gt;_&lt;vị trí&gt;_genN</code>, ví dụ <code>interstitial_show_scan_result_gen1</code>.</li>
+    <li><b>Mặc định tất cả ON.</b> Chỉ vị trí nào khớp một rule tắt mới bị OFF.</li>
+    <li>Quảng cáo chỉ hiện khi <b>cả hai</b> điều kiện đúng: cờ cũ <code>enable_*</code> trên Firebase đang bật, <b>và</b> không bị <code>ads_disable_rules_v1</code> tắt. Rule mới chỉ dùng để <b>tắt</b>, không bật lại được vị trí mà cờ cũ đang tắt.</li>
+    <li>JSON sai cú pháp hoặc sai kiểu dữ liệu ⇒ app <b>giữ nguyên rule hợp lệ gần nhất</b> (Last Known Good), không tự bật lại quảng cáo.</li>
+    <li>Gõ sai mã vị trí / màn / format ⇒ JSON vẫn hợp lệ, phần đúng vẫn áp dụng, phần sai bị bỏ qua và có cảnh báo. <b>Ngoại lệ:</b> mã màn của <code>small_banner_bottom_gen1</code> và <code>native_create_qr_gen1</code> không bị cảnh báo khi gõ sai (xem dòng dưới).</li>
+    <li>Mã màn của <b>banner dưới</b> và <b>native tạo QR</b> lấy theo tên màn (<code>getScreenName()</code>) đang hiển thị, ví dụ <code>small_banner_bottom_gen1:History</code>, <code>native_create_qr_gen1:CreateUrl</code>. Với banner dưới, mọi màn nhập nội dung tạo QR gộp chung mã <code>createQr</code>, mọi màn kết quả scan gộp chung mã <code>ScanResult</code>. Mã phân biệt hoa thường, nên copy từ <a href="#keys">Danh sách vị trí</a>.</li>
+  </ul>
+  <h3>Thứ tự ưu tiên lý do tắt</h3>
+  <p>Khi một vị trí khớp nhiều rule, dialog kết quả chỉ hiện lý do đứng trước:</p>
+  <div class="prio"><span>GLOBAL</span><i>›</i><span>BUILD</span><i>›</i><span>FORMAT</span><i>›</i><span>PLACEMENT</span><i>›</i><span>SCREEN</span></div>
+  <div class="tbl"><table>
+    <thead><tr><th>Field</th><th>Kiểu</th><th>Ý nghĩa</th><th>Lý do hiển thị</th></tr></thead>
+    <tbody>
+      <tr><td><code>disable_all</code></td><td>boolean</td><td>Tắt toàn bộ quảng cáo</td><td><code>GLOBAL</code></td></tr>
+      <tr><td><code>disabled_builds</code></td><td>mảng số nguyên</td><td>Tắt toàn bộ quảng cáo trên các versionCode liệt kê</td><td><code>BUILD</code></td></tr>
+      <tr><td><code>disabled_formats</code></td><td>mảng string</td><td>Tắt theo loại: <code>small_banner</code>, <code>medium_banner</code>, <code>native</code>, <code>interstitial</code>, <code>inter_open</code>, <code>app_open</code></td><td><code>FORMAT</code></td></tr>
+      <tr><td><code>disabled_placements</code></td><td>mảng string</td><td>Tắt theo mã vị trí, hoặc theo mã màn con <code>&lt;vị trí&gt;:&lt;màn&gt;</code></td><td><code>PLACEMENT</code> / <code>SCREEN</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- ============ 2 ============ -->
+  <h2 id="cach-doi">Cách đổi cấu hình</h2>
+  <h3>Cách 1: màn Testing trong app (QA dùng cách này)</h3>
+  <ol class="steps">
+    <li>Cài bản <b>Tester</b> hoặc <b>TesterGDPR</b> (<code>com.tohsoft.qrcodetesting</code>). Bản Product không có màn Testing.</li>
+    <li>Vào <b>Settings → Testing</b> → mục <b>Ads Disable Rules (ads_disable_rules_v1)</b>.</li>
+    <li>Chọn một trong:
+      <ul>
+        <li><b>Nhập JSON...</b>: dán JSON từ mục <a href="#mau">JSON mẫu</a>.</li>
+        <li><b>Một preset có sẵn</b>: danh sách đã sinh sẵn mọi format, mọi vị trí, mọi màn con của native empty và inter scan result, một số màn tiêu biểu của banner dưới (<code>createQr</code>, <code>ScanResult</code>, 5 tab chính, Card/URL Scanner) và native tạo QR (<code>CreateUrl</code>, <code>CreateWifi</code>, <code>CreateText</code>, <code>CreateMyCard</code>), cùng các case JSON lỗi. Màn khác thì dùng <b>Nhập JSON...</b> với JSON copy từ Danh sách vị trí. Preset theo build tự lấy đúng versionCode của bản đang cài.</li>
+        <li><b>Xóa override (dùng Firebase)</b>: bỏ JSON tự nhập, quay lại giá trị trên Firebase.</li>
+      </ul>
+    </li>
+    <li>App áp dụng ngay và hiện dialog <b>Kết quả áp dụng</b>: nguồn (Override / Firebase), JSON đang đọc, cảnh báo, danh sách vị trí OFF kèm lý do, danh sách màn con OFF kèm lý do.</li>
+    <li>Bấm back để về màn chính (app mở lại MainActivity), rồi đi tới màn cần kiểm tra.</li>
+  </ol>
+  <div class="note warn">
+    <p><b>Override thắng Firebase.</b> Khi đã nhập JSON ở màn Testing, mọi thay đổi trên Firebase Console bị bỏ qua. Muốn test luồng Firebase thì phải chọn <b>Xóa override</b> trước.</p>
+  </div>
+
+  <h3>Cách 2: Firebase Remote Config (dev / PM thao tác)</h3>
+  <ul>
+    <li>Sửa parameter <code>ads_disable_rules_v1</code> trên Firebase Console rồi Publish.</li>
+    <li>App đang mở nhận config qua Real-time Remote Config và áp dụng ngay, không cần mở lại app. Nếu máy offline, config mới áp dụng ở lần app fetch thành công tiếp theo.</li>
+    <li>Giá trị mặc định trong app là chuỗi rỗng ⇒ không tắt gì.</li>
+  </ul>
+
+  <div class="note">
+    <p><b>Xem log:</b> lọc Logcat theo <code>AdRemoteControl</code>. Mỗi vị trí bị tắt có dòng <code>OFF &lt;mã&gt;, reason = &lt;lý do&gt;</code>; JSON lỗi có dòng <code>không hợp lệ, dùng Last Known Good</code>; mã gõ sai có dòng <code>Placement lạ</code> / <code>Format lạ</code> / <code>Key lạ</code>.</p>
+  </div>
+
+  <!-- ============ 3 ============ -->
+  <h2 id="kich-ban">Kịch bản test</h2>
+  <div class="note warn">
+    <p><b>Điều kiện trước:</b> các cờ cũ trên Firebase phải đang bật cho vị trí cần test (xem cột “Cờ cũ phải bật” ở <a href="#keys">Danh sách vị trí</a>). Nếu cờ cũ tắt thì vị trí đó vốn đã OFF, không kiểm tra được rule mới. Interstitial còn bị giới hạn khoảng cách giữa 2 lần hiện, nên chờ đủ thời gian trước khi kết luận “không hiện”.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>#</th><th>Kịch bản</th><th>Cách làm</th><th>Kết quả mong đợi</th></tr></thead>
+    <tbody>
+      <tr><td class="id">TC01</td><td>Mặc định</td><td>Xóa override, Firebase để rỗng (hoặc Mẫu 1)</td><td><span class="pill on">ON</span> Mọi vị trí hiện theo cờ cũ. Dialog: “(không có)” ở cả 2 danh sách OFF</td></tr>
+      <tr><td class="id">TC02</td><td>Tắt toàn bộ</td><td>Mẫu 4</td><td><span class="pill off">OFF</span> Không vị trí nào hiện, kể cả app-open khi mở lại app. Lý do <code>GLOBAL</code></td></tr>
+      <tr><td class="id">TC03</td><td>Tắt theo build</td><td>Mẫu 5 với versionCode của bản đang cài, sau đó đổi sang số khác</td><td><span class="pill off">OFF</span> toàn bộ, lý do <code>BUILD</code>. Đổi số khác ⇒ <span class="pill on">ON</span> lại ngay</td></tr>
+      <tr><td class="id">TC04</td><td>Tắt theo format</td><td>Mẫu 3 (chỉ còn banner/native), hoặc preset <code>[Format] …</code> từng loại</td><td>Mọi vị trí cùng loại <span class="pill off">OFF</span>, lý do <code>FORMAT</code>. Loại khác vẫn <span class="pill on">ON</span></td></tr>
+      <tr><td class="id">TC05</td><td>Tắt 1 vị trí</td><td>Mẫu 2 hoặc preset <code>[Placement] …</code></td><td>Chỉ vị trí đó <span class="pill off">OFF</span>, lý do <code>PLACEMENT</code>. Vị trí cùng loại khác vẫn <span class="pill on">ON</span></td></tr>
+      <tr><td class="id">TC06</td><td>Tắt riêng 1 màn của vị trí dùng chung</td><td>Mẫu 6</td><td>Màn History không có native empty; Favorites, Batch… vẫn có. Ở màn Convert result của Image to Text: không có interstitial, vào thẳng kết quả. Màn Scan result vẫn có interstitial. Các màn nhập nội dung tạo QR (Url, Wifi, Text…) không có banner dưới; về tab Create thì banner dưới vẫn hiện. Màn tạo QR URL không có native; màn tạo QR Wifi vẫn có. Lý do <code>SCREEN</code></td></tr>
+      <tr><td class="id">TC07</td><td>Ưu tiên lý do</td><td>Mẫu 7</td><td>native empty OFF ở mọi màn với lý do <code>FORMAT</code> (không phải <code>SCREEN</code>)</td></tr>
+      <tr><td class="id">TC08</td><td>Gõ sai mã</td><td>Mẫu 8</td><td><span class="pill on">ON</span> các vị trí bị gõ sai. Dialog có cảnh báo <code>Placement lạ</code>, <code>Format lạ</code>, <code>Key lạ</code>. Riêng <code>app_open</code> (gõ đúng) vẫn <span class="pill off">OFF</span>. Gõ sai mã màn của banner dưới / native tạo QR (vd <code>small_banner_bottom_gen1:Histroy</code>) sẽ <b>không</b> có cảnh báo, chỉ là không màn nào bị tắt</td></tr>
+      <tr><td class="id">TC09</td><td>JSON lỗi giữ rule cũ</td><td>Áp Mẫu 2 trước. Sau đó áp Mẫu 9</td><td><span class="pill keep">GIỮ</span> Banner dưới vẫn OFF như Mẫu 2. Dialog: “JSON không hợp lệ → đang dùng Last Known Good”</td></tr>
+      <tr><td class="id">TC10</td><td>Rule cũ còn sau khi tắt app</td><td>Làm TC09, kill app, mở lại</td><td><span class="pill keep">GIỮ</span> Rule của Mẫu 2 vẫn áp dụng</td></tr>
+      <tr><td class="id">TC11</td><td>Áp dụng không cần restart</td><td>Đang ở màn có quảng cáo, nhờ dev publish rule tắt vị trí đó trên Firebase (đã xóa override)</td><td>Lần load/hiện tiếp theo của vị trí đó không còn quảng cáo, không cần mở lại app</td></tr>
+      <tr><td class="id">TC12</td><td>Offline</td><td>Áp một rule, bật chế độ máy bay, kill app, mở lại</td><td>Rule đã nhận vẫn áp dụng (dùng config đã cache)</td></tr>
+      <tr><td class="id">TC13</td><td>Bật lại</td><td>Sau bất kỳ case OFF nào, áp Mẫu 1 hoặc Xóa override</td><td><span class="pill on">ON</span> Quảng cáo hiện lại ở lần load tiếp theo</td></tr>
+      <tr><td class="id">TC14</td><td>Banner dưới theo tab</td><td>Tick <code>small_banner_bottom_gen1:History</code> ở Danh sách vị trí, copy JSON, áp dụng. Chuyển qua lại giữa tab History và các tab khác, mở một màn chồng từ tab History rồi back</td><td><span class="pill off">OFF</span> ở tab History, <span class="pill on">ON</span> ngay khi sang tab khác hoặc mở màn chồng có tên màn khác, OFF lại khi quay về History. Không cần mở lại app</td></tr>
+      <tr><td class="id">TC15</td><td>Rule theo màn khi đang đứng ở màn đó</td><td>Đang mở tab History (banner dưới đang hiện), nhờ dev publish rule <code>small_banner_bottom_gen1:History</code> trên Firebase (đã xóa override)</td><td>Banner chưa ẩn ngay. Ẩn ở lần hiện banner tiếp theo: đổi tab rồi quay lại, mở/đóng màn chồng, hoặc app quay lại từ background. Đây là giới hạn đã biết, không phải bug</td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- ============ 4 ============ -->
+  <h2 id="mau">JSON mẫu</h2>
+  <p>Bấm <b>Copy</b> rồi dán vào <b>Settings → Testing → Ads Disable Rules → Nhập JSON...</b>.</p>
+  <div class="samples">
+    <div class="sample"><header><h3>Mẫu 1 – Mặc định, không tắt gì</h3><button class="copy" type="button">Copy</button></header>
+      <p>Tương đương để rỗng trên Firebase.</p>
+<pre>{
+  "disable_all": false,
+  "disabled_builds": [],
+  "disabled_formats": [],
+  "disabled_placements": []
+}</pre></div>
+
+    <div class="sample"><header><h3>Mẫu 2 – Tắt banner dưới màn chính</h3><button class="copy" type="button">Copy</button></header>
+      <p>Banner cuối màn chính biến mất, các vị trí khác giữ nguyên.</p>
+<pre>{
+  "disabled_placements": ["small_banner_bottom_gen1"]
+}</pre></div>
+
+    <div class="sample"><header><h3>Mẫu 3 – Tắt mọi quảng cáo toàn màn hình</h3><button class="copy" type="button">Copy</button></header>
+      <p>Tắt interstitial, inter-open, app-open. Chỉ còn banner và native.</p>
+<pre>{
+  "disabled_formats": ["interstitial", "inter_open", "app_open"]
+}</pre></div>
+
+    <div class="sample"><header><h3>Mẫu 4 – Tắt toàn bộ quảng cáo</h3><button class="copy" type="button">Copy</button></header>
+      <p>Một cờ tắt tất cả vị trí.</p>
+<pre>{
+  "disable_all": true
+}</pre></div>
+
+    <div class="sample"><header><h3>Mẫu 5 – Tắt theo build</h3><button class="copy" type="button">Copy</button></header>
+      <p>198 là versionCode bản Tester 1.62. Thay bằng versionCode bản đang cài; đổi sang số khác thì quảng cáo hiện lại.</p>
+<pre>{
+  "disabled_builds": [198]
+}</pre></div>
+
+    <div class="sample"><header><h3>Mẫu 6 – Tắt riêng từng màn</h3><button class="copy" type="button">Copy</button></header>
+      <p>Native empty chỉ tắt ở History; interstitial chỉ tắt ở Convert result của Image to Text; banner dưới chỉ tắt ở các màn nhập nội dung tạo QR; native tạo QR chỉ tắt ở màn tạo QR URL.</p>
+<pre>{
+  "disabled_placements": [
+    "native_empty_screen_gen1:history",
+    "interstitial_show_scan_result_gen1:img2text_convert_result",
+    "small_banner_bottom_gen1:createQr",
+    "native_create_qr_gen1:CreateUrl"
+  ]
+}</pre></div>
+
+    <div class="sample"><header><h3>Mẫu 7 – Ưu tiên lý do</h3><button class="copy" type="button">Copy</button></header>
+      <p>Format native và màn con cùng khớp. Lý do hiển thị phải là FORMAT.</p>
+<pre>{
+  "disabled_formats": ["native"],
+  "disabled_placements": ["native_empty_screen_gen1:history"]
+}</pre></div>
+
+    <div class="sample"><header><h3>Mẫu 8 – Mã gõ sai</h3><button class="copy" type="button">Copy</button></header>
+      <p>Cố ý gõ sai để kiểm tra cảnh báo. Chỉ app_open bị tắt.</p>
+<pre>{
+  "disabled_formats": ["app_open", "rewarded"],
+  "disabled_placements": [
+    "result_interstitial_gen1",
+    "native_empty_screen_gen1:histroy"
+  ],
+  "foo": 1
+}</pre></div>
+
+    <div class="sample"><header><h3>Mẫu 9 – JSON lỗi</h3><button class="copy" type="button">Copy</button></header>
+      <p><code>disable_all</code> là string thay vì boolean ⇒ JSON không hợp lệ, app giữ rule cũ.</p>
+<pre>{
+  "disable_all": "true"
+}</pre></div>
+  </div>
+
+  <!-- ============ 5 ============ -->
+  <h2 id="keys">Danh sách vị trí (<span id="keys-total">119</span>)</h2>
+  <p>Gõ tên màn hình hoặc mã vào ô tìm kiếm để tra nhanh. Tick các vị trí muốn <b>TẮT</b>: JSON bên dưới tự cập nhật, bấm <b>Copy JSON</b> rồi dán vào <b>Settings → Testing → Ads Disable Rules → Nhập JSON...</b> hoặc gửi dev dán lên Firebase.</p>
+  <div class="keys-tools">
+    <label class="search" for="keys-search"><span class="sr">Tìm vị trí</span>
+      <input id="keys-search" type="search" placeholder="Tìm theo màn hình hoặc mã, ví dụ: history, scan result, banner" autocomplete="off">
+    </label>
+    <div class="chips" role="group" aria-label="Lọc theo format">
+      <button type="button" class="chip" data-format="" aria-pressed="true">Mọi format</button>
+      <button type="button" class="chip" data-format="small_banner" aria-pressed="false">small_banner</button>
+      <button type="button" class="chip" data-format="native" aria-pressed="false">native</button>
+      <button type="button" class="chip" data-format="interstitial" aria-pressed="false">interstitial</button>
+      <button type="button" class="chip" data-format="open" aria-pressed="false">inter_open / app_open</button>
+    </div>
+  </div>
+  <div class="note"><p><b>Mã màn của banner dưới</b> = tên màn (<code>getScreenName()</code>) đang hiển thị trên cùng: màn mở chồng nếu có, không thì tab đang chọn. Hai nhóm được gộp một mã: mọi màn nhập nội dung tạo QR dùng <code>createQr</code>, mọi màn kết quả scan dùng <code>ScanResult</code>. Mã phân biệt hoa thường. <b>Native tạo QR</b> cũng lấy mã theo tên màn tạo QR (<code>native_create_qr_gen1:CreateUrl</code>…), không gộp. Mã màn bất kỳ của <code>small_banner_bottom_gen1</code> và <code>native_create_qr_gen1</code> đều không bị cảnh báo <code>Placement lạ</code>, nên gõ sai sẽ không có cảnh báo, hãy copy từ bảng.</p></div>
+  <div id="keys-groups"></div>
+  <p id="keys-empty" class="sub" hidden>Không có vị trí nào khớp từ khoá.</p>
+
+  <div class="keys-json">
+    <div class="keys-json-head">
+      <h3>JSON từ các vị trí đã tick <span id="keys-count" class="count">0</span></h3>
+      <div class="keys-actions">
+        <button type="button" class="ghost" id="keys-default">Mặc định</button>
+        <button type="button" class="ghost" id="keys-clear">Bỏ chọn hết</button>
+        <button type="button" class="copy" id="keys-copy">Copy JSON</button>
+      </div>
+    </div>
+<pre id="keys-json">{
+  "disabled_placements": []
+}</pre>
+    <p class="small"><b>Mặc định</b> = không tick gì (app mặc định bật mọi vị trí). Mã phải gõ đúng cả hậu tố <code>_genN</code>: app so khớp chính xác, <code>small_banner_bottom</code> (thiếu <code>_gen1</code>) sẽ bị bỏ qua và báo <code>Placement lạ</code>. Muốn tắt theo loại hoặc toàn bộ thì dùng <code>disabled_formats</code> / <code>disable_all</code> ở <a href="#mau">JSON mẫu</a>.</p>
+  </div>
+
+  <!-- ============ 6 ============ -->
+  <h2 id="bao-loi">Báo lỗi</h2>
+  <p>Một bug report cần có:</p>
+  <ul>
+    <li>Mã vị trí (hoặc mã màn con) và tên màn hình đang kiểm tra.</li>
+    <li>JSON đã dùng, và nguồn: Override ở màn Testing hay Firebase.</li>
+    <li>Ảnh chụp dialog <b>Kết quả áp dụng</b> (có lý do OFF và cảnh báo).</li>
+    <li>Ảnh / video màn hình, trạng thái mạng (wifi, 4G, offline).</li>
+    <li>versionName / versionCode bản đang cài và flavor (Tester / TesterGDPR).</li>
+    <li>Nếu có: đoạn Logcat lọc theo <code>AdRemoteControl</code>.</li>
+  </ul>
+
+  <footer>Cập nhật 2026-10-28 theo source nhánh <code>v1.6x_firebase_config</code>: <code>AdDisableRules.kt</code>, <code>AdHelper.kt</code>, <code>AdPlaces.kt</code>, <code>EmptyAdScreen.kt</code>, <code>ScanResultInterScreen.kt</code>, <code>QRThemeActivity.kt</code> (banner bottom theo <code>getScreenName()</code>), <code>BaseCreateQRFragment.kt</code> / <code>BaseCreateQRTextFragment.kt</code> (native tạo QR theo <code>getScreenName()</code>), <code>TestingActivity.kt</code>.</footer>
+</div>
+
+<script>
+function copyText(text, btn, idle, doneLabel, selectEl) {
+  var done = function (label) { btn.textContent = label; setTimeout(function () { btn.textContent = idle; }, 1500); };
+  var fallback = function () {
+    if (!selectEl) { done('Không copy được'); return; }
+    var r = document.createRange(); r.selectNodeContents(selectEl);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    done('Đã chọn, Ctrl+C');
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { done(doneLabel); }, fallback);
+  } else { fallback(); }
+}
+document.querySelectorAll('.sample button.copy').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var pre = btn.closest('.sample').querySelector('pre');
+    copyText(pre.textContent, btn, 'Copy', 'Đã copy', pre);
+  });
+});
+
+// ===== Danh sách vị trí: dữ liệu lấy từ AdPlaces.kt, EmptyAdScreen.kt, ScanResultInterScreen.kt, AdHelper.setupAdConfig =====
+var PUB = 'ca-app-pub-7739790111472639/';
+var U = {
+  small_banner_bottom_gen1: ['4306647720', '5194946694', '8567177507'],
+  small_banner_create_qr_gen1: ['5259689901', '3440724662', '6381199888'],
+  medium_banner_empty_screen_gen1: ['1572124433', '3881865022', '3606532857'],
+  medium_banner_exit_dialog_gen1: ['9175831021', '3818834580', '2094689373'],
+  native_scan_result_a_gen1: ['4289860809', '6792681311', '7376762292'],
+  native_scan_result_b_gen1: ['6112181699'],
+  native_create_qr_gen1: ['8575709267', '2057320807', '2572326122'],
+  native_exit_dialog_gen1: ['9159568165', '4575672933', '6125042764'],
+  native_empty_screen_gen1: ['2438247141', '1125165470', '4060333816'],
+  interstitial_show_scan_result_gen1: ['5104724070', '4627932490', '5215676733'],
+  interstitial_back_scan_result_gen1: ['7232762146'],
+  interstitial_back_create_result_gen1: ['9030743754'],
+  inter_open_start_gen1: ['8739898517', '3690293333', '2589513398'],
+  app_open_start_gen1: ['5091498747']
+};
+var EMPTY_FLAG = '<code>enable_empty_native_ad_30</code>';
+var INTER_FLAG = '<code>enable_inter_action_ad_at_show_scan_result</code>';
+function bannerGroup(title, note, rows) {
+  return { title: title, note: note, rows: rows.map(function (s) {
+    return { key: 'small_banner_bottom_gen1:' + s[0], screen: s[1], format: 'small_banner', unitOf: 'small_banner_bottom_gen1', flag: 'Luôn bật' };
+  }) };
+}
+var GROUPS = [
+  { title: 'Banner', rows: [
+    { key: 'small_banner_bottom_gen1', screen: 'Mọi màn có banner dưới (xem các nhóm “Banner dưới theo màn” bên dưới)', format: 'small_banner', flag: 'Luôn bật' },
+    { key: 'small_banner_create_qr_gen1', screen: 'Màn tạo QR (form nhập nội dung)', format: 'small_banner', flag: '<code>enable_create_qrcode_ad_30</code> + <code>create_qrcode_ad_type_30</code> = 1' }
+  ]},
+  { title: 'Native', rows: [
+    { key: 'native_scan_result_a_gen1', screen: 'Màn kết quả scan, plan A', format: 'native', flag: '<code>enable_scan_result_native_ad_30</code> + <code>enable_qr_image_at_scan_result_58</code> = A' },
+    { key: 'native_scan_result_b_gen1', screen: 'Màn kết quả scan, plan B', format: 'native', flag: '<code>enable_scan_result_native_ad_30</code> + <code>enable_qr_image_at_scan_result_58</code> ≠ A' },
+    { key: 'native_create_qr_gen1', screen: 'Mọi màn tạo QR (form nhập nội dung), xem nhóm “Native tạo QR theo màn”', format: 'native', flag: '<code>enable_create_qrcode_ad_30</code> + <code>create_qrcode_ad_type_30</code> = 0' },
+    { key: 'native_exit_dialog_gen1', screen: 'Dialog thoát app / đánh giá app', format: 'native', flag: '<code>enable_exit_dialog_native_ad_30</code>' },
+    { key: 'native_empty_screen_gen1', screen: 'Mọi màn danh sách trống / đang tải (cả 8 màn ở nhóm “Native màn trống theo màn”)', format: 'native', flag: EMPTY_FLAG }
+  ]},
+  { title: 'Interstitial', rows: [
+    { key: 'interstitial_show_scan_result_gen1', screen: 'Khi mở màn kết quả scan và màn Convert result của Image to Text', format: 'interstitial', flag: INTER_FLAG },
+    { key: 'interstitial_back_scan_result_gen1', screen: 'Khi back khỏi màn kết quả scan', format: 'interstitial', flag: '<code>enable_inter_action_ad_at_back_scan_result</code>' },
+    { key: 'interstitial_back_create_result_gen1', screen: 'Khi back khỏi màn kết quả tạo QR', format: 'interstitial', flag: '<code>enable_inter_action_ad_at_back_create_result</code>' }
+  ]},
+  { title: 'Mở app', rows: [
+    { key: 'inter_open_start_gen1', screen: 'Quảng cáo mở app (cặp với app_open, app chọn 1 trong 2 khi mở)', format: 'inter_open', flag: '<code>enable_open_ad</code>' },
+    { key: 'app_open_start_gen1', screen: 'Quảng cáo mở app (cặp với inter_open, app chọn 1 trong 2 khi mở)', format: 'app_open', flag: '<code>enable_open_ad</code>' }
+  ]},
+  { title: 'Native tạo QR theo màn', note: 'Mã = tên màn tạo QR đang mở', rows: [
+    ['CreateUrl', 'Màn tạo QR: URL'],
+    ['CreateText', 'Màn tạo QR: Text (cả bản thường và bản text dùng chung tên này)'],
+    ['CreateWifi', 'Màn tạo QR: Wifi'],
+    ['CreateContact', 'Màn tạo QR: Contact'],
+    ['CreateMyCard', 'Màn tạo QR: My Card / VCard'],
+    ['CreateEmail', 'Màn tạo QR: Email'],
+    ['CreateEvent', 'Màn tạo QR: Event'],
+    ['CreateLocation', 'Màn tạo QR: Location'],
+    ['CreatePhone', 'Màn tạo QR: Phone'],
+    ['CreatePaypal', 'Màn tạo QR: Paypal'],
+    ['CreateSpotify', 'Màn tạo QR: Spotify'],
+    ['CreateViber', 'Màn tạo QR: Viber'],
+    ['CreateWhatsApp', 'Màn tạo QR: WhatsApp'],
+    ['CreateMessenger', 'Màn tạo QR: Messenger'],
+    ['CreateFacebook', 'Màn tạo QR: Facebook'],
+    ['CreateInstagram', 'Màn tạo QR: Instagram'],
+    ['CreateTwitter', 'Màn tạo QR: Twitter'],
+    ['CreateYoutube', 'Màn tạo QR: Youtube'],
+    ['CreateApp', 'Màn tạo QR: App'],
+    ['CreateBarcode', 'Màn tạo QR: Barcode'],
+    ['EditVCard', 'Màn tạo QR: Sửa VCard'],
+    ['CreateUrlText', 'Màn tạo QR: URL (bản text)'],
+    ['CreateVCardText', 'Màn tạo QR: VCard (bản text)']
+  ].map(function (s) { return { key: 'native_create_qr_gen1:' + s[0], screen: s[1], format: 'native', unitOf: 'native_create_qr_gen1', flag: '<code>enable_create_qrcode_ad_30</code> + <code>create_qrcode_ad_type_30</code> = 0' }; }) },
+  { title: 'Native màn trống theo màn', note: 'Tắt riêng 1 màn, các màn khác vẫn có native empty', rows: [
+    ['history', 'Tab History'],
+    ['favorites', 'Tab Favorite'],
+    ['card_scanner_history', 'Lịch sử Card Scanner'],
+    ['url_scanner_history', 'Lịch sử URL Scanner'],
+    ['batch', 'Màn Batch scan'],
+    ['img2text_project_detail', 'Image to Text: chi tiết project'],
+    ['img2text_convert_result', 'Image to Text: kết quả convert'],
+    ['img2text_rearrange', 'Image to Text: sắp xếp lại ảnh']
+  ].map(function (s) { return { key: 'native_empty_screen_gen1:' + s[0], screen: s[1], format: 'native', unitOf: 'native_empty_screen_gen1', flag: EMPTY_FLAG }; }) },
+  bannerGroup('Banner dưới theo màn: 5 tab chính', 'Mã = tên màn của tab đang chọn', [
+    ['History', 'Tab History'],
+    ['ListCreateQrCode', 'Tab Create (danh sách loại QR)'],
+    ['Scan', 'Tab Scan'],
+    ['Favorite', 'Tab Favorite'],
+    ['Settings', 'Tab Settings']
+  ]),
+  bannerGroup('Banner dưới theo màn: nhóm gộp', 'Một mã cho cả nhóm màn', [
+    ['createQr', 'Mọi màn nhập nội dung tạo QR (kế thừa BaseCreateQRFragment): Url, Wifi, Text, Contact, MyCard, Email, Event, Location, Phone, Paypal, Spotify, Viber, WhatsApp, Messenger, Facebook, Instagram, Twitter, Youtube, App, Barcode, EditVCard'],
+    ['ScanResult', 'Mọi màn kết quả scan (kế thừa BaseScanResultFragment): Url, Wifi, Text, Contact, VCard, Email, Event, Location, Phone, Sms, Paypal, Product, BarCode, App, Spotify, Viber, WhatsApp, Facebook, Instagram, Twitter, Youtube, TextResultVCard']
+  ]),
+  bannerGroup('Banner dưới theo màn: kết quả tạo QR', 'Mỗi loại QR một mã riêng', [
+    ['CreateUrlResult', 'Kết quả tạo QR: URL'],
+    ['CreateUrlTextResult', 'Kết quả tạo QR: URL (bản text)'],
+    ['CreateTextResult', 'Kết quả tạo QR: Text'],
+    ['CreateWifiResult', 'Kết quả tạo QR: Wifi'],
+    ['CreateContactResult', 'Kết quả tạo QR: Contact'],
+    ['CreateMyCardResult', 'Kết quả tạo QR: My Card'],
+    ['CreateMyCardTextResult', 'Kết quả tạo QR: My Card (bản text)'],
+    ['CreateEmailResult', 'Kết quả tạo QR: Email'],
+    ['CreateEventResult', 'Kết quả tạo QR: Event'],
+    ['CreateLocationResult', 'Kết quả tạo QR: Location'],
+    ['CreatePhoneResult', 'Kết quả tạo QR: Phone'],
+    ['CreatePaypalResult', 'Kết quả tạo QR: Paypal'],
+    ['CreateSpotifyResult', 'Kết quả tạo QR: Spotify'],
+    ['CreateViberResult', 'Kết quả tạo QR: Viber'],
+    ['CreateWhatsappResult', 'Kết quả tạo QR: WhatsApp'],
+    ['CreateMessengerResult', 'Kết quả tạo QR: Messenger'],
+    ['CreateFacebookResult', 'Kết quả tạo QR: Facebook'],
+    ['CreateInstagramResult', 'Kết quả tạo QR: Instagram'],
+    ['CreateTwitterResult', 'Kết quả tạo QR: Twitter'],
+    ['CreateYoutubeResult', 'Kết quả tạo QR: Youtube'],
+    ['CreateAppResult', 'Kết quả tạo QR: App'],
+    ['CreateBarcodeResult', 'Kết quả tạo QR: Barcode 2D'],
+    ['CreateClipboardResult', 'Kết quả tạo QR: Clipboard'],
+    ['CreateSearchProductResult', 'Kết quả tạo QR: Tra cứu sản phẩm']
+  ]),
+  bannerGroup('Banner dưới theo màn: tạo QR bản text, sửa QR', '', [
+    ['CreateText', 'Tạo QR Text (bản text, CreateTextTextFragment)'],
+    ['CreateUrlText', 'Tạo QR URL (bản text)'],
+    ['CreateVCardText', 'Tạo VCard (bản text)'],
+    ['ScanTextResultUrl', 'Kết quả scan URL (bản text)'],
+    ['ScanTextTesultVCard', 'Kết quả scan VCard (bản text). Tên trong source đang gõ “Tesult”, giữ nguyên'],
+    ['EditImageQr', 'Sửa ảnh QR'],
+    ['EditImageQr2', 'Sửa ảnh QR (layout 2)'],
+    ['EditImageQr3', 'Sửa ảnh QR (layout 3)']
+  ]),
+  bannerGroup('Banner dưới theo màn: Card / URL Scanner', '', [
+    ['CardScanner', 'Camera Card Scanner'],
+    ['CardScannerLocate', 'Chọn vùng danh thiếp'],
+    ['CardScannerResult', 'Kết quả Card Scanner'],
+    ['UrlScanner', 'Camera URL Scanner'],
+    ['HighlightUrl', 'Chọn vùng URL'],
+    ['UrlScannerResult', 'Kết quả URL Scanner'],
+    ['HistoryText', 'Lịch sử Card / URL Scanner'],
+    ['Batch', 'Batch scan'],
+    ['CardScannerBatch', 'Batch mở từ Card Scanner'],
+    ['UrlScannerBatch', 'Batch mở từ URL Scanner']
+  ]),
+  bannerGroup('Banner dưới theo màn: Image to Text', '', [
+    ['ScanImageToText', 'Camera Image to Text'],
+    ['ImageToTextLocate', 'Chọn vùng ảnh'],
+    ['ImageToTextResult', 'Kết quả OCR 1 ảnh'],
+    ['ImageToTextList', 'Danh sách ảnh của project'],
+    ['CropPhotoProject', 'Cắt ảnh'],
+    ['RotatePhotoProject', 'Xoay ảnh'],
+    ['Image2TextEffect', 'Hiệu ứng ảnh'],
+    ['ReArrangeImageToText', 'Sắp xếp lại ảnh'],
+    ['ConvertingImageToText', 'Đang convert'],
+    ['ConvertImageResult', 'Kết quả convert'],
+    ['EditImageToText', 'Sửa nội dung OCR'],
+    ['HistoryProjectImageToText', 'Lịch sử project'],
+    ['ProjectImgToTextDetail', 'Chi tiết project'],
+    ['MathPixResult', 'Kết quả MathPix']
+  ]),
+  bannerGroup('Banner dưới theo màn: Settings và khác', '', [
+    ['Themes', 'Chọn theme'],
+    ['Faq', 'FAQ'],
+    ['Help', 'Trợ giúp'],
+    ['ScanningHelp', 'Hướng dẫn scan'],
+    ['SupportCode', 'Mã hỗ trợ'],
+    ['TipForScanning', 'Mẹo scan'],
+    ['Feedback', 'Góp ý'],
+    ['Policy', 'Chính sách'],
+    ['Share', 'Màn nhận ảnh/dữ liệu share từ app khác (GetDataScanActivity)']
+  ]),
+  { title: 'Interstitial theo màn', note: 'Tắt riêng 1 màn, màn còn lại vẫn có interstitial', rows: [
+    ['scan_result', 'Mở màn kết quả scan QR/barcode'],
+    ['img2text_convert_result', 'Mở màn kết quả convert Image to Text (bỏ qua ad, vào thẳng kết quả)']
+  ].map(function (s) { return { key: 'interstitial_show_scan_result_gen1:' + s[0], screen: s[1], format: 'interstitial', unitOf: 'interstitial_show_scan_result_gen1', flag: INTER_FLAG }; }) },
+  { title: 'Khai báo nhưng chưa gắn màn', note: 'Có trong AdPlaces nhưng không màn nào dùng, tick vào không thấy khác biệt', rows: [
+    { key: 'medium_banner_empty_screen_gen1', screen: '<span class="pill dead">Chưa gắn màn nào</span>', format: 'medium_banner', flag: 'Không cần test' },
+    { key: 'medium_banner_exit_dialog_gen1', screen: '<span class="pill dead">Chưa gắn màn nào</span>', format: 'medium_banner', flag: 'Không cần test' }
+  ]}
+];
+
+(function () {
+  var host = document.getElementById('keys-groups');
+  var ticked = new Set();
+  var filterText = '', filterFormat = '';
+  var total = 0;
+
+  function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function plain(html) { var d = document.createElement('div'); d.innerHTML = html; return d.textContent; }
+
+  GROUPS.forEach(function (g, gi) {
+    total += g.rows.length;
+    var sec = document.createElement('section');
+    sec.className = 'keys-group';
+    sec.innerHTML =
+      '<div class="group-h"><h3>' + g.title + '</h3><span class="count">' + g.rows.length + '</span>' +
+      (g.note ? '<p>' + g.note + '</p>' : '') + '</div>' +
+      '<div class="tbl"><table class="keys"><thead><tr><th><span class="sr">Tắt</span></th><th>Key</th><th>Màn hình</th><th>Format</th><th>Ad unit</th><th>Cờ cũ phải bật</th></tr></thead><tbody></tbody></table></div>';
+    var tbody = sec.querySelector('tbody');
+    g.rows.forEach(function (r, ri) {
+      var id = 'k' + gi + '-' + ri;
+      var units = (U[r.unitOf || r.key] || []).map(function (u) { return PUB + u; }).join('<br>');
+      var tr = document.createElement('tr');
+      tr.dataset.key = r.key;
+      tr.dataset.format = r.format;
+      tr.dataset.search = (r.key + ' ' + plain(r.screen) + ' ' + r.format + ' ' + g.title).toLowerCase();
+      tr.innerHTML =
+        '<td><input type="checkbox" id="' + id + '" aria-label="Tắt ' + esc(r.key) + '"></td>' +
+        '<td><div class="keycell"><label for="' + id + '"><code>' + esc(r.key) + '</code></label>' +
+        '<button type="button" class="ico" title="Copy mã" aria-label="Copy mã ' + esc(r.key) + '">⧉</button></div></td>' +
+        '<td>' + r.screen + '</td><td><code>' + r.format + '</code></td>' +
+        '<td class="unit">' + (r.unitOf ? '<span title="Dùng chung ad unit của ' + r.unitOf + '">' + units + '</span>' : units) + '</td>' +
+        '<td>' + r.flag + '</td>';
+      tr.querySelector('input').addEventListener('change', function (e) {
+        if (e.target.checked) ticked.add(r.key); else ticked.delete(r.key);
+        render();
+      });
+      tr.querySelector('button.ico').addEventListener('click', function (e) { copyText(r.key, e.currentTarget, '⧉', '✓'); });
+      tbody.appendChild(tr);
+    });
+    host.appendChild(sec);
+  });
+  document.getElementById('keys-total').textContent = total;
+  var navKeys = document.querySelector('nav.toc a[href="#keys"]');
+  if (navKeys) navKeys.textContent = 'Danh sách vị trí (' + total + ')';
+
+  function order() {
+    // Giữ thứ tự theo bảng, không theo thứ tự tick.
+    return Array.prototype.map.call(host.querySelectorAll('tr[data-key]'), function (tr) { return tr.dataset.key; })
+      .filter(function (k) { return ticked.has(k); });
+  }
+  function json() {
+    var keys = order();
+    if (!keys.length) return '{\n  "disabled_placements": []\n}';
+    return '{\n  "disabled_placements": [\n' + keys.map(function (k) { return '    "' + k + '"'; }).join(',\n') + '\n  ]\n}';
+  }
+  function render() {
+    host.querySelectorAll('tr[data-key]').forEach(function (tr) {
+      var on = ticked.has(tr.dataset.key);
+      tr.classList.toggle('ticked', on);
+      tr.querySelector('input').checked = on;
+    });
+    document.getElementById('keys-json').textContent = json();
+    document.getElementById('keys-count').textContent = ticked.size;
+  }
+  function applyFilter() {
+    var any = false;
+    host.querySelectorAll('.keys-group').forEach(function (sec) {
+      var shown = 0;
+      sec.querySelectorAll('tr[data-key]').forEach(function (tr) {
+        var f = tr.dataset.format;
+        var okFormat = !filterFormat || (filterFormat === 'open' ? (f === 'inter_open' || f === 'app_open') : f === filterFormat);
+        var ok = okFormat && (!filterText || tr.dataset.search.indexOf(filterText) !== -1);
+        tr.hidden = !ok;
+        if (ok) shown++;
+      });
+      sec.hidden = shown === 0;
+      if (shown) any = true;
+    });
+    document.getElementById('keys-empty').hidden = any;
+  }
+
+  document.getElementById('keys-search').addEventListener('input', function (e) {
+    filterText = e.target.value.trim().toLowerCase();
+    applyFilter();
+  });
+  document.querySelectorAll('.chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      document.querySelectorAll('.chip').forEach(function (c) { c.setAttribute('aria-pressed', c === chip ? 'true' : 'false'); });
+      filterFormat = chip.dataset.format;
+      applyFilter();
+    });
+  });
+  document.getElementById('keys-default').addEventListener('click', function () { ticked.clear(); render(); });
+  document.getElementById('keys-clear').addEventListener('click', function () { ticked.clear(); render(); });
+  document.getElementById('keys-copy').addEventListener('click', function (e) {
+    copyText(json(), e.currentTarget, 'Copy JSON', 'Đã copy', document.getElementById('keys-json'));
+  });
+  render();
+})();
+</script>
+
+</body></html>
